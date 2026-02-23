@@ -16,27 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install apache-airflow==3.1.7
-          pip install structlog==25.5.0 --force-reinstall
+          python-version: "3.11"
 
       - name: Validate DAG syntax
-        run: |
-          echo "Validating DAG syntax..."
-          for f in dags/*.py; do
-            echo "Checking $f..."
-            python -c "
-import ast, sys
-with open('$f') as file:
-    source = file.read()
-try:
-    ast.parse(source)
-    print('$f - OK')
-except SyntaxError as e:
-    print('$f - FAILED:', e)
-    sys.exit(1)
-"
-          done
+        run: python .github/scripts/validate_dags.py
