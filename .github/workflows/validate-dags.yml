@@ -20,8 +20,8 @@ jobs:
 
       - name: Install Airflow
         run: |
-          pip install apache-airflow==3.1.1
-          pip install "structlog >= 21.2.0"
+          pip install "apache-airflow==3.1.7" \
+            --constraint "https: //raw.githubusercontent.com/apache/airflow/constraints-3.1.7/constraints-3.11.txt"
 
 
       - name: Validate DAGs
