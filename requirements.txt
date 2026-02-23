@@ -1,0 +1,8 @@
+# Data processing
+pandas==2.2.2
+
+# MySQL database connector
+mysql-connector-python==8.4.0
+
+# Airflow SQL provider
+apache-airflow-providers-common-sql==1.14.0
