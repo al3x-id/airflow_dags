@@ -16,13 +16,32 @@ jobs:
 
     env:
       AIRFLOW_HOME: ~/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      # MySQL connection for DAG validation
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: mysql+mysqlconnector://airflow:airflow@127.0.0.1:3306/dim_fact_db
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: airflow
+          MYSQL_DATABASE: dim_fact_db
+          MYSQL_USER: airflow
+          MYSQL_PASSWORD: airflow
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
 
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout repo
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Python
+      # 2️⃣ Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -38,29 +57,36 @@ jobs:
           pip install "apache-airflow==3.1.7" \
             --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.1.7/constraints-3.11.txt"
 
-      # 5️⃣ Install DAG dependencies (including structlog fix)
+      # 5️⃣ Install DAG dependencies (including structlog)
       - name: Install DAG dependencies
         run: |
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          fi
+          pip install -r requirements.txt
 
-      # 6️⃣ Initialize Airflow metadata DB
+      # 6️⃣ Wait for MySQL service to be ready
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h127.0.0.1 -P3306 -uairflow -pairflow && break
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+
+      # 7️⃣ Initialize Airflow DB (migrates to MySQL)
       - name: Initialize Airflow DB
-        run: airflow db init
+        run: |
+          airflow db migrate
+          airflow connections create-default-connections
 
-      # 7️⃣ Copy DAGs into AIRFLOW_HOME
+      # 8️⃣ Load DAGs
       - name: Load DAGs
         run: |
           mkdir -p $AIRFLOW_HOME/dags
           cp -r dags/* $AIRFLOW_HOME/dags/
 
-      # 8️⃣ Validate DAGs
+      # 9️⃣ Validate DAGs
       - name: List DAGs
-        run: |
-          echo "Listing DAGs..."
-          airflow dags list
+        run: airflow dags list
 
-      # 9️⃣ Check for import errors
+      # 🔟 Check DAG import errors
       - name: List DAG import errors
         run: airflow dags list-import-errors
