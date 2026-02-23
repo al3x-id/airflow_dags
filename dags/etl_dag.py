@@ -13,7 +13,7 @@ default_args = {
 
 @dag(
     dag_id="daily_etl_pipeline_airflow3",
-    description="ETL workflow demonstrating dynamic task mapping and assets",
+    description="ETL workflow demonstrating creation of dimension and fact tables",
     schedule="@daily",
     start_date=datetime(2026, 2, 21),
     catchup=False,
