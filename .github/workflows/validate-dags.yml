@@ -1,29 +1,68 @@
-name: Validate Airflow DAGs
+name: Airflow CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - 'dags/**'
 
 jobs:
-  validate:
+  airflow:
     runs-on: ubuntu-latest
+    env:
+      AIRFLOW_HOME: ${{ github.workspace }}/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      # Default SQLite connection (override for MySQL/Postgres)
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: sqlite:///${{ github.workspace }}/airflow/airflow.db
+      DB_TYPE: sqlite  # Options: sqlite, mysql, postgres
+      DB_HOST: localhost
+      DB_PORT: 3306
+      DB_USER: airflow
+      DB_PASSWORD: airflow
+      DB_NAME: airflow_db
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Airflow
         run: |
-          pip install --upgrade pip
-          pip install apache-airflow==2.8.0 structlog==23.3.0
+          python -m pip install --upgrade pip
+          pip install "apache-airflow==3.5.3"  # Lock to stable version
+          # Install DB drivers if using MySQL or Postgres
+          if [ "$DB_TYPE" = "mysql" ]; then pip install mysql-connector-python; fi
+          if [ "$DB_TYPE" = "postgres" ]; then pip install psycopg2-binary; fi
 
-      - name: Validate DAG syntax
+      - name: Wait for Database
+        if: env.DB_TYPE != 'sqlite'
         run: |
-          echo "Validating DAG syntax..."
-          airflow dags list || exit 1
+          echo "Waiting for database $DB_TYPE at $DB_HOST:$DB_PORT..."
+          for i in {1..30}; do
+            if [ "$DB_TYPE" = "mysql" ]; then
+              mysqladmin ping -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD &>/dev/null && break
+            elif [ "$DB_TYPE" = "postgres" ]; then
+              pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER &>/dev/null && break
+            fi
+            echo "Database not ready yet, retrying..."
+            sleep 2
+          done
+
+      - name: Initialize / Migrate Airflow DB
+        run: |
+          airflow db migrate
+          airflow connections create-default-connections
+
+      - name: List DAGs
+        run: airflow dags list
+
+      - name: Start Airflow Scheduler (background)
+        run: nohup airflow scheduler &
+
+      - name: Start Airflow Webserver (background)
+        run: nohup airflow webserver -p 8080 &
