@@ -40,7 +40,9 @@ jobs:
         run: |
           export AIRFLOW_HOME=$(pwd)/airflow_home
           mkdir -p $AIRFLOW_HOME
-          airflow dags list
+          airflow db init # Initialize lightweight SQLite DB
+          airflow dags list # Parse and validate all dags
+
 
       
       - name: Post Set up Python
