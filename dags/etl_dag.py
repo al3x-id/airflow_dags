@@ -313,7 +313,6 @@ def daily_etl_pipeline():
       conn = mysql.connector.connect(**db_config)
       cursor = conn.cursor()
       
-
       for name in merged_datasets:
           df = pd.read_csv(transformed_datasets[name])
           df = df.replace({pd.NA: None, float("nan"): None})
