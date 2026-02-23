@@ -4,7 +4,6 @@ import pandas as pd
 import os
 import json
 import mysql.connector
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 default_args = {
     "owner": "Alex",
