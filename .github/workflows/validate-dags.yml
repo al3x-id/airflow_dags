@@ -18,22 +18,12 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install apache-airflow==2.8.0 structlog==23.3.0
+
       - name: Validate DAG syntax
         run: |
-          python - <<'PY'
-          import ast, sys, os
-          failed = False
-          for f in os.listdir('dags'):
-              if f.endswith('.py'):
-                  path = 'dags/' + f
-                  with open(path) as file:
-                      source = file.read()
-                  try:
-                      ast.parse(source)
-                      print(path + ' - OK')
-                  except Exception as e:
-                      print(path + ' - FAIL:', e)
-                      failed = True
-          if failed:
-              sys.exit(1)
-          PY
+          echo "Validating DAG syntax..."
+          airflow dags list || exit 1
