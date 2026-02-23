@@ -7,9 +7,6 @@ on:
       - "dags/**"
       - "requirements.txt"
 
-  pull_request:
-    branches: [ main ]
-
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -18,6 +15,7 @@ jobs:
       AIRFLOW_HOME: ~/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: mysql+mysqlconnector://airflow:airflow@127.0.0.1:3306/dim_fact_db
 
     services:
       mysql:
@@ -36,32 +34,25 @@ jobs:
           --health-retries 3
 
     steps:
-      # 1️⃣ Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Python 3.11
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3️⃣ Upgrade pip
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      # 4️⃣ Install Airflow 3.1.7 with constraints
-      - name: Install Apache Airflow
+      - name: Install Airflow
         run: |
           pip install "apache-airflow==3.1.7" \
             --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-3.1.7/constraints-3.11.txt"
 
-      # 5️⃣ Install DAG dependencies
       - name: Install DAG dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      # 6️⃣ Wait for MySQL service
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
@@ -70,24 +61,18 @@ jobs:
             sleep 2
           done
 
-      # 7️⃣ Initialize Airflow DB (MySQL)
-      - name: Initialize Airflow DB
-        env:
-          AIRFLOW__CORE__SQL_ALCHEMY_CONN: mysql+mysqlconnector://airflow:airflow@127.0.0.1:3306/dim_fact_db
+      - name: Initialize Airflow DB (MySQL)
         run: |
           airflow db migrate
           airflow connections create-default-connections
 
-      # 8️⃣ Load DAGs into AIRFLOW_HOME
       - name: Load DAGs
         run: |
           mkdir -p $AIRFLOW_HOME/dags
           cp -r dags/* $AIRFLOW_HOME/dags/
 
-      # 9️⃣ List DAGs (validate syntax)
-      - name: List DAGs
+      - name: List DAGs (validate)
         run: airflow dags list
 
-      # 🔟 Show DAG import errors
-      - name: List DAG import errors
+      - name: Show DAG import errors
         run: airflow dags list-import-errors
