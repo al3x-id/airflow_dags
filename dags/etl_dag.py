@@ -337,4 +337,4 @@ def daily_etl_pipeline():
   raw_datasets = extract_datasets()
   transformed_datasets = transform_datasets(raw_datasets)
   load_to_mysql(transformed_datasets)
-daily_etl_pipeline = daily_etl_pipeline()
+dag = daily_etl_pipeline()
