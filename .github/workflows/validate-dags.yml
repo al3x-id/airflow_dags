@@ -15,30 +15,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
-      - name: Checkout repository
+      # 1. Set up job
+      - name: Set up job
+        run: echo "Starting Airflow DAG validation workflow"
+
+      # 2. Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Set up Python
+      # 3. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3. Install Airflow
-      - name: Install Apache Airflow
+      # 4. Install Airflow
+      - name: Install Airflow
         run: |
           python -m pip install --upgrade pip
           pip install "apache-airflow==2.7.2" --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.7.2/constraints-3.11.txt"
 
-      # 4. Initialize Airflow DB (SQLite, so DB agnostic for validation)
-      - name: Initialize Airflow Database
-        run: |
-          export AIRFLOW_HOME=$(pwd)/airflow_home
-          airflow db init
-
       # 5. Validate DAGs
-      - name: Check DAG Syntax
+      - name: Validate DAGs
         run: |
           export AIRFLOW_HOME=$(pwd)/airflow_home
+          mkdir -p $AIRFLOW_HOME
           airflow dags list
+
+      # 6. Post Set up Python
+      - name: Post Set up Python
+        if: always()
+        run: echo "Python setup complete"
+
+      # 7. Post Checkout Repository
+      - name: Post Checkout Repository
+        if: always()
+        run: echo "Repository checkout complete"
+
+      # 8. Complete job
+      - name: Complete job
+        run: echo "Airflow DAG validation workflow finished"
