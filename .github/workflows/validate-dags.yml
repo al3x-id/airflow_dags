@@ -20,20 +20,20 @@ jobs:
 
       - name: Validate DAG syntax
         run: |
-          python -c "
-import ast, sys, os
-failed = False
-for f in os.listdir('dags'):
-    if f.endswith('.py'):
-        path = 'dags/' + f
-        with open(path) as file:
-            source = file.read()
-        try:
-            ast.parse(source)
-            print(path + ' - OK')
-        except SyntaxError as e:
-            print(path + ' - FAILED: ' + str(e))
-            failed = True
-if failed:
-    sys.exit(1)
-"
+          python - <<'PY'
+          import ast, sys, os
+          failed = False
+          for f in os.listdir('dags'):
+              if f.endswith('.py'):
+                  path = 'dags/' + f
+                  with open(path) as file:
+                      source = file.read()
+                  try:
+                      ast.parse(source)
+                      print(path + ' - OK')
+                  except Exception as e:
+                      print(path + ' - FAIL:', e)
+                      failed = True
+          if failed:
+              sys.exit(1)
+          PY
