@@ -155,6 +155,15 @@ def daily_etl_pipeline():
       def clean_loc_a101(df):
           """Cleaning the loc_a101 dataset."""
           df["CID"] = df["CID"].str.replace("-", "")
+          df["CNTRY"] = (
+                df["CNTRY"]
+                .str.strip()
+                .replace({"DE" : "Germany",
+                        "US" : "United States",
+                        "USA" : "United States",
+                        "" : "Others"})
+                .fillna("Others")
+                )
           return df
 
       def clean_px_cat_g1v2(df):
