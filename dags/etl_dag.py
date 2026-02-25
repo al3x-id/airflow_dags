@@ -131,6 +131,10 @@ def daily_etl_pipeline():
                   format="%Y%m%d",
                   errors="coerce"
               )
+          df["sls_order_dt"] = df["sls_order_dt"].fillna(
+            df.groupby("sls_due_dt")['sls_order_dt']
+            .transform("first")
+            )
           df["sls_sales"] = df["sls_sales"].replace (0, pd.NA).fillna(
               df["sls_quantity"] * df["sls_price"]
           ).astype(int)
